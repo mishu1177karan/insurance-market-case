@@ -8,9 +8,13 @@ reports/daily/*.html
 reports/daily/*.pdf
 reports/daily/*.png
 reports/daily/*.csv
+reports/daily/*_case_audit.md
+reports/daily/*_critic.md
 reports/weekly/*.html
 reports/weekly/*.pdf
 reports/weekly/*.png
 reports/weekly/*.csv
+reports/weekly/*_case_audit.md
+reports/weekly/*_critic.md
 !reports/daily/.gitkeep
 !reports/weekly/.gitkeep

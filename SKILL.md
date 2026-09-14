@@ -12,7 +12,7 @@ description: >
   "/insurance-daily", "/insurance-weekly", or wants an insurance-industry
   news case in HTML/PDF form.
 argument-hint: "[daily|weekly] [optional segment override, e.g. 'cyber' or 'reinsurance']"
-allowed-tools: Read, Grep, Glob, Write, Edit, Bash, WebSearch, WebFetch
+allowed-tools: Read, Grep, Glob, Write, Edit, Bash, WebSearch, WebFetch, Task
 ---
 
 # Insurance Market Case — Workflow
@@ -22,7 +22,13 @@ Output is **HTML and PDF only** — no slide deck, no LaTeX. The HTML is the
 canonical version (styled, readable in a browser); the PDF is rendered from
 that same HTML so the two never drift apart.
 
-**Time budget**: daily brief under 3 minutes; weekly roundup under 5 minutes.
+**Time budget**: daily brief under 3 minutes; weekly roundup under 5 minutes
+(the review gate in Steps 6-7 adds another 30-60s on top of that).
+
+**Review policy**: ship after the first critic pass if the score is ≥80 and
+no factual check scored below half — don't pause for confirmation. If the
+critic BLOCKs, run the auto-revise loop (Step 7) rather than asking the user
+what to do; only surface residual BLOCK items after 3 rounds.
 
 ## Step 0: Parse the argument
 
@@ -164,13 +170,96 @@ It tries `weasyprint` first, then falls back to headless Edge/Chrome
 is the default). If both fail, report the HTML path and tell the user to
 open it and print-to-PDF manually from their browser — don't block on it.
 
-## Terminal report to the user
+### Emit the case audit (`{slug}_case_audit.md`)
+
+The `insurance-case-critic` (Step 6) is read-only and cannot run your
+scripts, open the chart PNG, or render the PDF — it relies entirely on this
+audit. Write it into the same output folder as
+`{YYYY-MM-DD}_{segment_slug}_case_audit.md`, `encoding='utf-8'`. Record:
+
+- **Event chosen** — one line, plus 2-3 source URLs with their publish dates.
+- **Segment + slug** — e.g. "Health Insurance — `health_insurance`".
+- **Cadence** — daily or weekly.
+- **yfinance metrics** — a small table (ticker, name, current value, period %
+  change, as-of date). These are the raw numbers behind the Key Numbers
+  table and the chart.
+- **Numbers placed in the Key Numbers table** — the exact values you wrote
+  into the HTML, so the critic can compare them to the yfinance metrics.
+- **Chart content description** — one line naming the series plotted, the
+  window, and what the annotation marks. The critic can't open the PNG, so
+  this is its only way to verify the chart caption against the audit.
+- **Proxy-ticker disclosure** — if the segment used a proxy (cyber →
+  `CIBR`, cat/climate → P&C/reinsurance names), note it here and confirm the
+  HTML says so explicitly too.
+- **Historical parallel** — the past event you cited and its date.
+- **Segment fit** — which row of `references/insurance_topic_map.md` you
+  matched to, and why (so the critic can check the tickers/keywords/parallel
+  actually belong to that segment, not a different one).
+- **Secondary stories** (weekly only) — for each: headline, 1-sentence
+  summary, source URL, publish date.
+- **Render status** — HTML written successfully; PDF render method used
+  (weasyprint / headless browser / failed) and outcome.
+
+Do **not** report to the user yet — proceed to Step 6 (review gate). The
+brief ships only after the critic signs off (or after the Step 7 revise
+loop).
+
+## Step 6: Review gate (critic)
+
+Dispatch the **insurance-case-critic** via the Task tool. Point it at:
+- the generated `.html`, and
+- the `{slug}_case_audit.md` you just wrote.
+
+It also reads `references/insurance_topic_map.md` itself. The critic
+returns a scored **PASS/BLOCK** report as its message — it checks factual
+accuracy (event veracity, direction/magnitude, dates, internal consistency)
+and fit/quality (segment fit, proxy-ticker disclosure, prose/secondary-story
+quality, render status). It has no Write/Edit/Bash tools, so it cannot touch
+the brief — it only reports.
+
+**Persist the report** to the same output folder as
+`{slug}_critic.md` (overwrite in place each round; the report records the
+round number).
+
+- **On PASS:** go to Step 7's terminal report (skip the revise loop).
+- **On BLOCK:** go to Step 7's revise loop.
+
+## Step 7: Auto-revise loop
+
+For each **BLOCK** item in the critic report, apply the minimal fix in place:
+
+| Critic finding | Fix |
+|----------------|-----|
+| Event mischaracterized / wrong direction (checks #1, #2) | Correct the summary text and/or the Key Numbers table; if a metric itself is wrong, re-run the Step 2 data script for that ticker and update the table + chart |
+| Fabricated / out-of-order date (check #3) | Correct or remove the date in the `.html` |
+| Table ↔ chart ↔ audit disagree (check #4) | Reconcile to the yfinance metrics (authoritative), update the table and re-make the chart if needed |
+| Wrong segment / mismatched tickers or historical parallel (check #5) | Re-match the event to the correct row in `insurance_topic_map.md`; re-pull tickers and re-check the parallel |
+| Missing or unclear proxy-ticker disclosure (check #6) | Add an explicit one-sentence disclosure to the HTML (e.g. "CIBR is used as a sentiment proxy; no pure-play public cyber insurer exists") |
+| AI-tells in prose, or a secondary story that's thin/duplicate/undated (check #7) | Rewrite the flagged sentence(s); for weekly, replace or properly source the flagged secondary story |
+| Missing HTML or PDF (check #8) | Re-run `scripts/html_to_pdf.py` (max 2 attempts); if it still fails, follow the Failure-handling table below |
+| **Chart y-axis clipping** | Compute each series' max, raise `ylim` to ≥1.10 × global max; re-render and recompile |
+| **Chart annotation overlaps a data line** | Move the annotation to an empty zone; use `ax.annotate(..., arrowprops=dict(arrowstyle="->"))` |
+| Missing audit / cannot verify | Re-emit a complete `{slug}_case_audit.md` |
+
+Apply **all** blocking fixes in one pass, then:
+1. Update `{slug}_case_audit.md` to reflect the corrected numbers/dates/segment.
+2. Re-render the PDF (`scripts/html_to_pdf.py`, max 2 attempts).
+3. Re-dispatch the `insurance-case-critic` (round 2).
+
+**Max 3 rounds.** After round 3:
+- **PASS** at any round → ship.
+- **Still BLOCK after round 3** → ship the best version anyway and surface
+  the residual BLOCK items to the user for a human decision.
+
+### Terminal report to the user
 
 Report:
 - The HTML path and the PDF path
 - One-sentence summary of the top story and which segment it maps to
 - For weekly: how many secondary stories were included
 - Any proxy-ticker caveats (cyber, cat/climate) if used
+- The critic's final score and PASS/BLOCK verdict
+- (If shipped on strike-3) the residual BLOCK items, by check number
 
 ## Failure handling
 
@@ -180,6 +269,8 @@ Report:
 | No relevant insurance news found | Default to Property & Casualty, pull `KIE` + top holdings, frame as "This Day/Week in Insurance Stocks." |
 | PDF render fails (no weasyprint, no browser found) | Ship the HTML only. Tell the user to open it in a browser and print-to-PDF, or install `weasyprint`. |
 | Web search times out | Skip the news search, use the most recent data available, frame as a generic market update. |
+| Critic still BLOCK after 3 revise rounds | Ship the best version. Surface the residual BLOCK items (by check number) to the user for a human decision — do not loop further. |
+| Critic cannot run (Task dispatch fails) | Skip the gate, ship the brief, and note in the terminal report that the review was skipped and the brief is **unreviewed**. |
 
 ## Speed tips
 
