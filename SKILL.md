@@ -251,10 +251,31 @@ Apply **all** blocking fixes in one pass, then:
 - **Still BLOCK after round 3** → ship the best version anyway and surface
   the residual BLOCK items to the user for a human decision.
 
+## Step 8: Update the index and publish
+
+Reports are tracked in git (not gitignored) — this repo is meant to build a
+running, browsable archive on GitHub Pages. Once the brief has shipped
+(PASS, or ship-on-strike-3):
+
+1. Add an entry to the top of the relevant list (`Daily Briefs` or
+   `Weekly Roundups`) in `index.html` at the repo root: headline linking to
+   the `.html` report, and a meta line with the date, segment, a link to the
+   `.pdf`, and the critic's final score (e.g. "PASS 100/100" or
+   "BLOCK (shipped) 74/100").
+2. `git add` the new report files (`.html`, `.pdf`, `.png`, `.csv`,
+   `_case_audit.md`, `_critic.md`) plus the updated `index.html`.
+3. Commit with a short message naming the date and segment (e.g.
+   `Add 2026-09-15 health_insurance daily brief`).
+4. `git push`.
+
+If `git push` fails (no remote configured, auth issue, merge conflict),
+don't force anything — report the failure to the user and leave the commit
+local rather than guessing at a fix.
+
 ### Terminal report to the user
 
 Report:
-- The HTML path and the PDF path
+- The HTML path and the PDF path (local) and confirmation it was pushed
 - One-sentence summary of the top story and which segment it maps to
 - For weekly: how many secondary stories were included
 - Any proxy-ticker caveats (cyber, cat/climate) if used

@@ -13,7 +13,9 @@ chart, and frames the event against the relevant insurance segment
 InsurTech, auto, regulation/M&A).
 
 Every brief passes through a read-only review gate (`insurance-case-critic`)
-before it ships — see [Review gate](#review-gate) below.
+before it ships — see [Review gate](#review-gate) below. Shipped reports are
+committed to the repo and listed on the [GitHub Pages archive](#archive) —
+this repo doubles as the published output, not just the skill source.
 
 ## Install as a Claude Code skill
 
@@ -38,6 +40,7 @@ Then in a Claude Code session:
 ```
 insurance-market-case/
 ├── SKILL.md                        # the workflow Claude follows
+├── index.html                      # GitHub Pages landing page, links every shipped report
 ├── agents/
 │   └── insurance-case-critic.md    # read-only review-gate subagent (copy into ~/.claude/agents/)
 ├── references/
@@ -46,13 +49,19 @@ insurance-market-case/
 ├── scripts/
 │   └── html_to_pdf.py              # renders the finished HTML to PDF (weasyprint, else headless Edge/Chrome)
 └── reports/
-    ├── daily/                      # generated daily briefs land here
-    └── weekly/                     # generated weekly roundups land here
+    ├── daily/                      # every shipped daily brief (.html, .pdf, .png, .csv, audit, critic report)
+    └── weekly/                     # every shipped weekly roundup
 ```
 
-Generated reports are gitignored by default (see `.gitignore`) — this repo
-ships the skill, not a history of past briefs. Remove the ignore rules if
-you want to keep a running archive of reports in the repo.
+## Archive
+
+Reports are committed to the repo (not gitignored) so they build a running
+history. **GitHub Pages** is enabled on this repo (main branch, root), so
+`index.html` and every report `.html` file render as real webpages —
+browse the archive at the Pages URL shown in the repo's "About" section,
+rather than viewing raw HTML source in GitHub's file browser. After each
+run, the skill (Step 8) adds the new report to `index.html`, commits, and
+pushes automatically.
 
 ## PDF rendering
 
