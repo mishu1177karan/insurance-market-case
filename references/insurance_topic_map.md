@@ -46,7 +46,7 @@ of time (there's no "week" schedule here, unlike a course-topic skill).
 | Field | Value |
 |-------|-------|
 | **Slug** | `reinsurance` |
-| **Tickers** | `RE` (Everest Group), `RGA` (Reinsurance Group of America), `RNR` (RenaissanceRe), `SPNT` (SiriusPoint), `KIE` (benchmark) |
+| **Tickers** | `EG` (Everest Group), `RGA` (Reinsurance Group of America), `RNR` (RenaissanceRe), `SPNT` (SiriusPoint), `KIE` (benchmark) |
 | **News keywords** | reinsurance rates, treaty renewal, retrocession, catastrophe bond, alternative capital, hard market, soft market, January renewals, June/July renewals |
 | **Chart type** | Multi-line: reinsurer stocks + KIE, normalized to 100 over 3 months |
 | **Historical parallels** | 2017 hurricane season (Harvey/Irma/Maria) hardened the reinsurance market for years; 2022-23 hard market after Hurricane Ian |
